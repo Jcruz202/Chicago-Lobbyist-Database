@@ -24,7 +24,23 @@ import sqlite3
 #          occurs, a msg is output and None is returned.
 #
 def select_one_row(dbConn, sql, parameters = None):
-    pass
+    if (parameters == None):
+        parameters = []
+
+    dbCursor = dbConn.cursor()
+
+    try:
+        dbCursor.execute(sql, parameters)
+        row = dbCursor.fetchone()
+        return row
+    except Exception as err:
+        print("select_one_row:", err)
+        return None
+    finally:
+        dbCursor.close()
+
+
+    
 
 
 ##################################################################
@@ -44,7 +60,20 @@ def select_one_row(dbConn, sql, parameters = None):
 #          output and None is returned.
 #
 def select_n_rows(dbConn, sql, parameters = None):
-    pass
+    if (parameters == None):
+        parameters = []
+
+    dbCursor = dbConn.cursor()
+
+    try:
+        dbCursor.execute(sql, parameters)
+        row = dbCursor.fetchall()
+        return row
+    except Exception as err:
+        print("select_n_rows:", err)
+        return None
+    finally:
+        dbCursor.close()
 
 
 ##################################################################
@@ -67,4 +96,20 @@ def select_n_rows(dbConn, sql, parameters = None):
 #          because the where condition was false?).
 #
 def perform_action(dbConn, sql, parameters = None):
-    pass
+    if (parameters == None):
+        parameters = []
+
+    dbCursor = dbConn.cursor()
+
+    try:
+        dbCursor.execute(sql, parameters)
+        row = dbCursor.rowcount
+        if (row == 0):
+            return 0
+        dbConn.commit()
+        return row
+    except Exception as err:
+        print("perform_action:", err)
+        return -1
+    finally:
+        dbCursor.close()
