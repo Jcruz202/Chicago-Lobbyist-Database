@@ -447,7 +447,7 @@ def set_salutation(dbConn, lobbyist_id, salutation):
                                 SET Salutation = ? 
                                 WHERE Lobbyist_ID = ?
                             """
-            parameters = [lobbyist_id, salutation]
+            parameters = [salutation, lobbyist_id]
             datatier.perform_action(dbConn, salutation_sql, parameters)
             return 1
         return 0
