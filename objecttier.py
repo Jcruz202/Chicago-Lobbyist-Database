@@ -352,29 +352,48 @@ def get_lobbyist_details(dbConn, lobbyist_id):
 #
 def get_top_N_lobbyists(dbConn, N, year):
     top_lobbyist_sql = """
-                        SELECT LobbyistInfo.Lobbyist_ID, LobbyistInfo.First_Name, LobbyistInfo.Last_Name, LobbyistInfo.Phone, Compensation_Amount, Client_Name
+                        SELECT LobbyistInfo.Lobbyist_ID, LobbyistInfo.First_Name, LobbyistInfo.Last_Name, LobbyistInfo.Phone, 
+                        SUM(Compensation_Amount) AS total_compensation
                         FROM LobbyistInfo
-                        JOIN LobbyistYears ON LobbyistInfo.Lobbyist_ID = LobbyistYears.Lobbyist_ID
-                        JOIN Compensation ON LobbyistYears.Lobbyist_ID = Compensation.Lobbyist_ID
-                        JOIN ClientInfo ON Compensation.Client_ID = ClientInfo.Client_ID
-                        WHERE LobbyistYears.Year = ?
+                        LEFT JOIN LobbyistYears ON LobbyistInfo.Lobbyist_ID = LobbyistYears.Lobbyist_ID
+                        LEFT JOIN Compensation ON LobbyistYears.Lobbyist_ID = Compensation.Lobbyist_ID
+                        WHERE LobbyistYears.Year = ? AND ? BETWEEN strftime('%Y', Period_Start) AND strftime('%Y', Period_End)
+                        GROUP BY LobbyistInfo.Lobbyist_ID
+                        ORDER BY total_compensation DESC, Last_Name ASC
+                        LIMIT ?
                         """
+    client_sql = """
+                    SELECT DISTINCT ClientInfo.Client_ID, ClientInfo.Client_Name
+                    FROM Compensation
+                    JOIN ClientInfo ON Compensation.Client_ID = ClientInfo.Client_ID
+                    JOIN LobbyistInfo ON Compensation.Lobbyist_ID = LobbyistInfo.Lobbyist_ID
+                    JOIN LobbyistYears ON LobbyistInfo.Lobbyist_ID = LobbyistYears.Lobbyist_ID
+                    WHERE Compensation.Lobbyist_ID = ?
+                        AND LobbyistYears.YEAR = ? 
+                        AND strftime('%Y', Period_Start) = ?
+                        AND strftime('%Y', Period_END) = ?
+                    ORDER BY ClientInfo.Client_Name
+                    """
     try:
-        result = datatier.select_n_rows(dbConn, top_lobbyist_sql, (year,))
-        # if year > 2021:
-        #     return None
-        # for i in range(N):
+        parameters = [year, year, N]
+        result = datatier.select_n_rows(dbConn, top_lobbyist_sql, parameters)
+        if not result:
+            return None
+        
         list_lobbyist = []
         for row in result:
-            lobbyist_ID, first_name, last_name, phone, total_compensation, clients = row
-            temp = LobbyistClients(lobbyist_ID, first_name, last_name, phone, total_compensation, clients)
+            temp_id = row[0]
+            client_parameters = [temp_id, year, year, year]
+            client_result = datatier.select_n_rows(dbConn, client_sql, client_parameters)
+            client =[row[1] for row in client_result]
+            if not client_result:
+                return None
+            lobbyist_ID, first_name, last_name, phone, total_compensation = row
+            temp = LobbyistClients(lobbyist_ID, first_name, last_name, phone, total_compensation, client)
             list_lobbyist.append(temp)
+            # print(row)
 
-        # print(row)
         return list_lobbyist
-            
-        # print(row)
-
     except Exception as err:
         print("get_lobbyist_details", err)
         return None
