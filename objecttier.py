@@ -337,7 +337,6 @@ def get_lobbyist_details(dbConn, lobbyist_id):
         print("get_lobbyists_details", err)
         return None
 
-
 ##################################################################
 #
 # get_top_N_lobbyists:
